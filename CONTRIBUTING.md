@@ -13,10 +13,10 @@ You can find bugs from the following source:
 
 We want to find bugs that are machine learning related. Such bugs should have the following characteristics:
 
-- Silent: The bug does not cause any error or warning in initial runs. It may stay completely silent and only produce incorrect results.
-- Hard to detect: The bug might be flaky, only occur in certain environments, or only occur when encountering some special inputs (e.g. NaN bugs).
-- Hard to debug: The exception message might not point directly to the root cause of the bug, and it needs some extra effort to debug.
-- Costly: The bug is costly. For example, a bug in validation code can cause all prior training to be wasted.
+- **Silent**: The bug does not cause any error or warning in initial runs. It may stay completely silent and only produce incorrect results.
+- **Hard to detect**: The bug might be flaky, only occur in certain environments, or only occur when encountering some special inputs (e.g. NaN bugs).
+- **Hard to debug**: The exception message might not point directly to the root cause of the bug, and it needs some extra effort to debug.
+- **Costly**: The bug is costly. For example, a bug in validation code can cause all prior training to be wasted.
 
 The above list is not exhaustive and each point can have some overlap. As long as you find a bug interesting, feel free to add it to the list. When unsure, **please open an issue to discuss**.
 
