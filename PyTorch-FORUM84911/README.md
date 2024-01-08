@@ -126,6 +126,11 @@ Also, the definition of major layers might depend on the specific task. For exam
 
 It is intuitive to statically detect this specific issue where the input image resolution does not match the model's input resolution. In this issue case, the model takes 224x224 images as input, but the input image is rescaled to 1024x1024, and the dataset contains only 32x32 images. This is a clear mismatch. 
 
+***Correction***: The mismatch is not between the specific resolution but rather the scale of objects in the photo. However (the good news), I think most of the time there is a linear relationship between object scales and image resolution. So we can still report potential issues when resolution mismatches, just with a lower confidence. Still, this correction has two implication:
+
+- The best input resolution cannot be known from model architecture. One possibly to gain insights about model can be from the dynamic invariant inference technique.
+- Ideally, our tool needs to have hard-to-measure insights from the datasets to be able to find mismatches such as object scales.
+
 ##### Challenges & Limitations
 
 There isn't really challenges for this approach. However, this approach is limited to resoluation mismatch issues in image datasets.
