@@ -77,9 +77,74 @@ We expect to make the following contributions:
 
 ## 3. Stages
 
+1. Understanding Real-World Silent/Latent Correctness Issues [*Current Stage*]
+    - [x] Collecting real-world issues
+    - [x] Analyzing the issues
+    - [x] Summarizing the issues
+2. Testing the Hypothesis [*Current Stage*]
+    - [ ] Implementing prototypes
+    - [ ] Evaluating prototypes
+3. Iterating on the Hypothesis
+    - [ ] Desiding on one potential direction to focus on
+    - [ ] Finish iterating on the direction with data collected from Stage 1
+    - [ ] Repeating Stage 2 and 3
+4. Large-Scale Evaluation
+    - [ ] Collecting more real-world issues (probably from industry collaborators)
+    - [ ] Evaluating the tool on the issues
+5. Writing Paper
+    - [ ] Writing the paper
+    - [ ] Submitting the paper
+
 ## 4. Milestones
 
+### 4.1. Milestone 1: Understanding Real-World Silent/Latent Correctness Issues
+
+- **Outcome**: A list of real-world silent/latent correctness issues that 1) meet our bug-choosing criteria, 2) are reproducible, and 3) are analyzed. We will also analyze the issues and summarize the findings, to guide our design decisions.
+- **Satisfying Criteria**: This milestone will be considered as satisfied if we have several issues that meet our bug-choosing criteria, are reproducible, and are analyzed.
+- **What to do**:
+  - Collecting real-world issues
+    - [x] Collecting issues from GitHub issues
+    - [x] Collecting issues from StackOverflow
+    - [x] Collecting issues from other sources (e.g., Reddit, Twitter, etc.)
+- **Deadline**: No deadline. We will keep collecting issues even after this milestone is satisfied.
+
+### 4.2. Milestone 2: Have a working prototype
+
+- **Outcome**: A working prototype built from our hypothesis that can detect a wide range of silent/latent correctness issues in ML pipelines.
+- **Satisfying Criteria**:
+  - This milestone will be considered as satisfied if the working prototype shows promising results on the issues collected in Milestone 1.
+  - A working prototype is considered as "working" if it can detect some silent/latent correctness issues in ML pipelines at a satisfying practicality (e.g., the cost of running the pipeline is not too high).
+- **What to do**:
+  - Testing all the hypothesis we have
+    - [ ] Implementing prototypes
+    - [ ] Evaluating prototypes
+- **Deadline**: 2024 Winter
+
+### 4.3. Milestone 3: Reaching a satisfying utility
+
+- **Outcome**: A tool that can detect a wide range of silent/latent correctness issues in ML pipelines with a satisfying utility.
+- **Satisfying Criteria**: This milestone will be considered as satisfied if the tool can detect a wide range of silent/latent correctness issues in ML pipelines with a satisfying utility. We also need a very large set of real-world issues to evaluate the tool.
+- **What to do**:
+  - Iterating on the hypothesis
+    - [ ] Desiding on one potential direction to focus on
+    - [ ] Finish iterating on the direction with data collected from Stage 1
+    - [ ] Repeating Stage 2 and 3
+  - Large-Scale Evaluation
+    - [ ] Collecting more real-world issues (probably from industry collaborators)
+    - [ ] Evaluating the tool on the issues
+- **Deadline**: 2024 Summer
+
+### 4.4. Milestone 4: Writing Paper
+
+- **Outcome**: A paper that describes the tool and the findings.
+- **Satisfying Criteria**: This milestone will be considered as satisfied if the paper is accepted by a top-tier conference.
+- **Deadline**: 2024 Fall (Before the OSDI deadline)
+
 ## 5. Goals by the end of this semester (2024 Winter)
+
+- Finish Milestone 1 and 2.
+- Have a plan for Milestone 3.
+- Have a revised introduction, background, and related work section for the paper (Milestone 4).
 
 ## 6. Existing Flaws
 
