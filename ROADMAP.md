@@ -148,6 +148,10 @@ We expect to make the following contributions:
 
 ## 6. Existing Flaws
 
+TBD
+
+Mostly on understanding the issues and how far has the research community gone.
+
 ## References
 
 1. [Unicron: Economizing Self-Healing LLM Training at Scale](https://arxiv.org/abs/2401.00134)
