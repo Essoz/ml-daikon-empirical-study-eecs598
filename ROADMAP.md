@@ -31,14 +31,17 @@ Please see [CONTRIBUTING.md#bug-selection](https://github.com/OrderLab/machine-l
 3. **Issues that are not silent/latent**: Issues that raise exceptions early on are usually easy to detect and fix. Though they still troubles developers a lot, the cost of such issues and effort to debug them are usually not as high as silent/latent issues.
 4. **Finding issues in GPU Drivers, CUDA, or other non-user-level code**: Quality assurance of those components is very important. However, we feel like the root cause of such issues is usually diverse and hard to pinpoint. For example, a PyTorch API raising an exception might be caused by a bug in PyTorch, a bug in CUDA, or a bug in the user code or an environment installation issue. As a result, we feel like there is not much we can do to help developers debug such issues.
 
+***Our technique is aimed at detecting general silent/latent correctness issues in ML pipelines due to various root causes (even though they might reside in the drivers or CUDA etc.). It is not aimed at detecting issues that are specific to a certain ML library or a certain type of ML pipeline. But we focus on user issues for now as they are easier to control.***
+
 ## 2. Introduction & Expected Contribution
 
-As machine learning (ML) gains popularity in both academia and industry, the correctness of ML pipelines becomes increasingly important. A silent or latent correctness issue in an ML pipeline can result in a huge cost, especially when the pipeline is executed for a long time (e.g., hours). The cost is further amplified as the scale of ML pipelines increases astronomically with the recent LLM arms race [1]. Detecting such issues and fixing them introduces a huge burden on developers. For example, a developer might need to wait for hours to see if the pipeline raises an exception or not. Even worse, the pipeline might not raise an exception at all, but the results are completely wrong. Also even if the bug has been detected, it is also hard to estimate the time needed to fix it. For example, a developer might need to spend hours to find out that the bug is caused by a missing data preprocessing step. As a result, a tool that can detect such issues early on will help developers save a lot of time and money.
+<!-- TODO: cite blogs, papers (general case points) -->
+As machine learning (ML) gains popularity in both academia and industry, the correctness of ML pipelines becomes increasingly important. A silent or latent correctness issue in an ML pipeline can result in a huge cost, especially when the pipeline is executed for a long time (e.g., hours). The cost is further amplified as the scale of ML pipelines increases astronomically with the recent LLM arms race [1]. Detecting such issues and fixing them introduces a huge burden on developers. For example, a developer might need to wait for hours to see if the pipeline raises an exception or not. Even worse, the pipeline might not raise an exception at all, but the results are completely wrong. Also even if the bug has been detected, it is also hard to estimate the time needed to fix it. For example, a developer might need to spend hours to find out that the bug is caused by a missing data preprocessing step. As a result, a tool that can detect such issues early on will help developers save a lot of time and money. TODO: cite tensor shape mismatch paper, BLOOM training blog, etc.
 
 <!-- What's the challenges of finding silent/latent correctness issues? -->
 Silent or latent correctness issues are easy to make and hard to detect. A few hypothesis that they are easy to make are:
 
-1. Flexible and dynamic nature of ML pipelines. Thus, it is harder to formally control the quality of ML pipelines with tools like git.
+1. Flexible and dynamic nature of ML pipelines. Thus, it is harder to formally control the quality of ML pipelines with tools like git. TODO: CMU SEI Blog
 2. Lack of formal specifications of ML libraries. Thus, it is harder to formally verify the correctness of ML pipelines.
 3. Long execution time. Thus, it is harder to detect issues early on.
 4. Data-dependent nature of ML pipelines. Thus, it is harder to apply traditional software engineering techniques (e.g., unit testing) to ML pipelines.
@@ -99,7 +102,7 @@ We expect to make the following contributions:
 
 ### 4.1. Milestone 1: Understanding Real-World Silent/Latent Correctness Issues
 
-- **Outcome**: A list of real-world silent/latent correctness issues that 1) meet our bug-choosing criteria, 2) are reproducible, and 3) are analyzed. We will also analyze the issues and summarize the findings, to guide our design decisions.
+- **Outcome**: A list of (#TODO: 10 or more) real-world silent/latent correctness issues that 1) meet our bug-choosing criteria, 2) are reproducible, and 3) are analyzed. We will also analyze the issues and summarize the findings, to guide our design decisions. 
 - **Satisfying Criteria**: This milestone will be considered as satisfied if we have several issues that meet our bug-choosing criteria, are reproducible, and are analyzed.
 - **What to do**:
   - Collecting real-world issues
@@ -110,7 +113,7 @@ We expect to make the following contributions:
 
 ### 4.2. Milestone 2: Have a working prototype
 
-- **Outcome**: A working prototype built from our hypothesis that can detect a wide range of silent/latent correctness issues in ML pipelines.
+- **Outcome**: A working prototype (#TODO: a prototype able to work on a few existing issues, infer the constraints (not necessarily detecing bugs), etc.) built from our hypothesis that can detect a wide range of silent/latent correctness issues in ML pipelines.
 - **Satisfying Criteria**:
   - This milestone will be considered as satisfied if the working prototype shows promising results on the issues collected in Milestone 1.
   - A working prototype is considered as "working" if it can detect some silent/latent correctness issues in ML pipelines at a satisfying practicality (e.g., the cost of running the pipeline is not too high).
@@ -148,9 +151,12 @@ We expect to make the following contributions:
 
 ## 6. Existing Flaws
 
-TBD
-
 Mostly on understanding the issues and how far has the research community gone.
+
+TODO: 
+1. input: whether contraints can be inferred (e.g. representativeness), how to guarantee validity of input? usefulness of input (potentially need to rule out irrelevant relations)?
+2. Performance: 
+3. Accuracy:
 
 ## References
 
