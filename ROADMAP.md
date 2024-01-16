@@ -29,9 +29,7 @@ Please see [CONTRIBUTING.md#bug-selection](https://github.com/OrderLab/machine-l
 1. **Hyperparameter tuning**: This is a very important yet heavily studied problem. As a result, we want to focus on other problems that are less studied but still matters a lot.
 2. **Solving environment issues**: Engineering-wise, this is a very hard problem to solve due to the complexity of the Python ecosystem, lack of standardization in the ML community, and the lack of control over the user's environment. We feel like this problem is better solved by the ML community as a whole or by the Software Engineering community.
 3. **Issues that are not silent/latent**: Issues that raise exceptions early on are usually easy to detect and fix. Though they still troubles developers a lot, the cost of such issues and effort to debug them are usually not as high as silent/latent issues.
-4. **Finding issues in GPU Drivers, CUDA, or other non-user-level code**: Quality assurance of those components is very important. However, we feel like the root cause of such issues is usually diverse and hard to pinpoint. For example, a PyTorch API raising an exception might be caused by a bug in PyTorch, a bug in CUDA, or a bug in the user code or an environment installation issue. As a result, we feel like there is not much we can do to help developers debug such issues.
-
-***Our technique is aimed at detecting general silent/latent correctness issues in ML pipelines due to various root causes (even though they might reside in the drivers or CUDA etc.). It is not aimed at detecting issues that are specific to a certain ML library or a certain type of ML pipeline. But we focus on user issues for now as they are easier to control.***
+4. **Finding issues in GPU Drivers, CUDA, or other non-user-level code**: Quality assurance of those components is very important, and our project should be able to help with that. **Our technique is indeed aimed at detecting general silent/latent correctness issues in ML pipelines due to various root causes despite their location no matter it is in user level code or the environment. However, we choose to focus on user issues for now as they are easier to control.** For example, a PyTorch API raising an exception might be caused by a bug in PyTorch, a bug in CUDA, or a bug in the user code or an environment installation issue. As a result, we feel like for now it is better to focus on user issues as they are easier to control. We might consider expanding our scope in the future.
 
 ## 2. Introduction & Expected Contribution
 
@@ -82,15 +80,23 @@ We expect to make the following contributions:
 
 1. Understanding Real-World Silent/Latent Correctness Issues [*Current Stage*]
     - [x] Collecting real-world issues
+        - [x] Collecting issues from GitHub issues
+        - [x] Collecting issues from StackOverflow
+        - [x] Collecting issues from other sources (e.g., Reddit, Twitter, etc.)
     - [x] Analyzing the issues
     - [x] Summarizing the issues
 2. Testing the Hypothesis [*Current Stage*]
-    - [ ] Implementing prototypes
-    - [ ] Evaluating prototypes
+    - [ ] Testing all the hypothesis we have
+        - [ ] Implementing prototypes
+        - [ ] Evaluating prototypes
 3. Iterating on the Hypothesis
-    - [ ] Desiding on one potential direction to focus on
-    - [ ] Finish iterating on the direction with data collected from Stage 1
-    - [ ] Repeating Stage 2 and 3
+    - [ ] Iterating on the hypothesis
+        - [ ] Desiding on one potential direction to focus on
+        - [ ] Finish iterating on the direction with data collected from Stage 1
+        - [ ] Repeating Stage 2 and 3
+    - [ ] Large-Scale Evaluation
+        - [ ] Collecting more real-world issues (probably from industry collaborators)
+        - [ ] Evaluating the tool on the issues
 4. Large-Scale Evaluation
     - [ ] Collecting more real-world issues (probably from industry collaborators)
     - [ ] Evaluating the tool on the issues
@@ -102,39 +108,22 @@ We expect to make the following contributions:
 
 ### 4.1. Milestone 1: Understanding Real-World Silent/Latent Correctness Issues
 
-- **Outcome**: A list of (#TODO: 10 or more) real-world silent/latent correctness issues that 1) meet our bug-choosing criteria, 2) are reproducible, and 3) are analyzed. We will also analyze the issues and summarize the findings, to guide our design decisions. 
+- **Outcome**: A list of 10 real-world silent/latent correctness issues that 1) meet our bug-choosing criteria, 2) are reproducible, and 3) are analyzed. We will also analyze the issues and summarize the findings, to guide our design decisions.
 - **Satisfying Criteria**: This milestone will be considered as satisfied if we have several issues that meet our bug-choosing criteria, are reproducible, and are analyzed.
-- **What to do**:
-  - Collecting real-world issues
-    - [x] Collecting issues from GitHub issues
-    - [x] Collecting issues from StackOverflow
-    - [x] Collecting issues from other sources (e.g., Reddit, Twitter, etc.)
 - **Deadline**: No deadline. We will keep collecting issues even after this milestone is satisfied.
 
 ### 4.2. Milestone 2: Have a working prototype
 
-- **Outcome**: A working prototype (#TODO: a prototype able to work on a few existing issues, infer the constraints (not necessarily detecing bugs), etc.) built from our hypothesis that can detect a wide range of silent/latent correctness issues in ML pipelines.
+- **Outcome**: A working prototype built from our hypothesis that can detect a wide range of silent/latent correctness issues in ML pipelines. The minimum requirement is being able to infer certain types of constraints from the pipeline.
 - **Satisfying Criteria**:
   - This milestone will be considered as satisfied if the working prototype shows promising results on the issues collected in Milestone 1.
   - A working prototype is considered as "working" if it can detect some silent/latent correctness issues in ML pipelines at a satisfying practicality (e.g., the cost of running the pipeline is not too high).
-- **What to do**:
-  - Testing all the hypothesis we have
-    - [ ] Implementing prototypes
-    - [ ] Evaluating prototypes
 - **Deadline**: 2024 Winter
 
 ### 4.3. Milestone 3: Reaching a satisfying utility
 
 - **Outcome**: A tool that can detect a wide range of silent/latent correctness issues in ML pipelines with a satisfying utility.
 - **Satisfying Criteria**: This milestone will be considered as satisfied if the tool can detect a wide range of silent/latent correctness issues in ML pipelines with a satisfying utility. We also need a very large set of real-world issues to evaluate the tool.
-- **What to do**:
-  - Iterating on the hypothesis
-    - [ ] Desiding on one potential direction to focus on
-    - [ ] Finish iterating on the direction with data collected from Stage 1
-    - [ ] Repeating Stage 2 and 3
-  - Large-Scale Evaluation
-    - [ ] Collecting more real-world issues (probably from industry collaborators)
-    - [ ] Evaluating the tool on the issues
 - **Deadline**: 2024 Summer
 
 ### 4.4. Milestone 4: Writing Paper
@@ -150,13 +139,18 @@ We expect to make the following contributions:
 - Have a revised introduction, background, and related work section for the paper (Milestone 4).
 
 ## 6. Existing Flaws
+<!-- Mostly on understanding the issues and how far has the research community gone. -->
 
-Mostly on understanding the issues and how far has the research community gone.
+Since this project aims to leverage dynamic invariant inference to detect silent/latent correctness issues in ML pipelines, the following are the existing flaws that we need to address threats to validity related to this approach:
 
-TODO: 
-1. input: whether contraints can be inferred (e.g. representativeness), how to guarantee validity of input? usefulness of input (potentially need to rule out irrelevant relations)?
-2. Performance: 
+1. Input:
+    - Whether the input (e.g. collected trace, ml pipelines) is representative of real-world ML pipelines?
+    - Whether the input itself is correct? If not, the invariants inferred from the input might be incorrect.
+    - Noise in the input (e.g. irrelevant variables, or indeterminism, etc.) might affect the quality of the inferred invariants.
+2. Performance:
+    - Whether the performance of the tool is acceptable? If not, the tool might not be practical.
 3. Accuracy:
+    - Whether the inferred invariants are accurate? If not, the tool might not be able to detect the issues.
 
 ## References
 
