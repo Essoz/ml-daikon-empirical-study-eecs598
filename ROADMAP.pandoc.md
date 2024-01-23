@@ -1,8 +1,13 @@
+---
+title: "Roadmap of Machine Learning Issues"
+author: "Yuxuan Jiang"
+bibliography: [./citations.bib]
+csl: ieee.csl
+---
+
 # Roadmap of *Machine Learning Issues*
 
-From a high-level perspective, this project aims to help developers detect silent/latent correctness issues (bugs) in machine learning pipelines before those issues result in unbearable costs.
-
-This file documents the storyline of the project, the milestones, and the goals of each milestone. It is a living document that will be updated as the project progresses.
+From a high-level perspective, this project aims to help developers detect silent/latent correctness issues (bugs) in machine learning pipelines before those issues result in unbearable costs. This file documents the storyline of the project, the milestones, and the goals of each milestone. It is a living document that will be updated as the project progresses.
 
 ## 1. Key Research Questions
 
@@ -33,25 +38,37 @@ Please see [CONTRIBUTING.md#bug-selection](https://github.com/OrderLab/machine-l
 
 ## 2. Introduction & Expected Contribution
 
-<!-- TODO: cite blogs, papers (general case points) -->
-As machine learning (ML) gains popularity in both academia and industry, the correctness of ML pipelines becomes increasingly important. A silent or latent correctness issue in an ML pipeline can result in a huge cost, especially when the pipeline is executed for a long time (e.g., hours). The cost is further amplified as the scale of ML pipelines increases astronomically with the recent LLM arms race [1]. Detecting such issues and fixing them introduces a huge burden on developers. For example, a developer might need to wait for hours to see if the pipeline raises an exception or not. Even worse, the pipeline might not raise an exception at all, but the results are completely wrong. Also even if the bug has been detected, it is also hard to estimate the time needed to fix it. For example, a developer might need to spend hours to find out that the bug is caused by a missing data preprocessing step. As a result, a tool that can detect such issues early on will help developers save a lot of time and money. TODO: cite tensor shape mismatch paper, BLOOM training blog, etc.
+As machine learning (ML) gains popularity in both academia and industry, the correctness of ML pipelines becomes increasingly important. A silent or latent correctness issue in an ML pipeline often goes unnoticed, which adds to the challenges in timely detection and debugging of such issues. The cost of detecting and fixing such issues is further amplified as the scale of ML projects increases astronomically with the recent LLM arms race [@huggingface2022bloom, @googleai2023gemini, @metaai2023llama], usually involving hours or days of downtime and hours or days of wasted machine hours [@bigscience2022hanging].
+
+<!-- Silent Issue Example From Bloom -->
+For example, a gradient clipping bug in [Deepspeed's BF16Optmizer](https://github.com/microsoft/DeepSpeed/pull/1801/commits/e24814a10de04ce280efe2adb027b023e3336493) caused the certain parts of the model to silently diverge during training. Though the bug was detected before the divergence became too huge, the developers still had to spend 12 days to fix the bug [@bigscience2022hanging]. On the other hand, if the bug was not detected early on, the developers might have to face the cost of retraining the model from scratch as the end model weights will be inconsistent.
+
+<!-- Latent Issue Example -->
+Another example is that a model expecting input of certain batch size might raise an exception at the end of the training when the size of the training dataset is not a multiple of the batch size. This latent issue will cause the entire training to fail after hours of training [@jhoo2021static].
+
+Reproducing and fixing silent/latent issues imposes a huge burden on developers. Manifestation of such issues usually requires long execution time to surface in the form of exceptions or noticeable discrepancies in the metrics. Specific input might also be required for debugging, which is hardly available. As reported in CMU SEI's Interview with data scientists [@lewis2021characterizing], ”A typical thing that might happen is that in the production environment, something would happen. We would have a bad prediction, some sort of anomalous event. And we were asked to investigate that. Well, unless we have the same input data in our development environment, we can’t reproduce that event.”. In addition, even if the bug has been detected, it is also hard to estimate the time needed to fix it, as ML engineering still largely relies on trial and error [@8987482]. Consequently, a tool that can detect such issues early on will help developers save a lot of time and money.
 
 <!-- What's the challenges of finding silent/latent correctness issues? -->
-Silent or latent correctness issues are easy to make and hard to detect. A few hypothesis that they are easy to make are:
+Silent or latent correctness issues are easy to make and hard to detect. Here we try to more formally define the underlying reasons:
 
-1. Flexible and dynamic nature of ML pipelines. Thus, it is harder to formally control the quality of ML pipelines with tools like git. TODO: CMU SEI Blog
-2. Lack of formal specifications of ML libraries. Thus, it is harder to formally verify the correctness of ML pipelines.
-3. Long execution time. Thus, it is harder to detect issues early on.
-4. Data-dependent nature of ML pipelines. Thus, it is harder to apply traditional software engineering techniques (e.g., unit testing) to ML pipelines.
+<!-- CMU SEI Blog https://insights.sei.cmu.edu/blog/detecting-mismatches-machine-learning-systems/
+developing an AI/ML model is a statistical problem that is relatively fast and cheap; but deploying, evolving, and maintaining models and the systems that contain them is an engineering problem that is hard and expensive. -->
 
-Additionally, unlike traditional software, correctness issues might not only be caused by the code but also by the data. For example, a data preprocessing step might be inappropriate (e.g. [PyTorch#FORUM84911](https://github.com/OrderLab/machine-learning-issues/blob/main/PyTorch-FORUM84911/README.md#pytorch-forum84911)), or the data might be corrupted.
+1. Flexible and dynamic development process of ML pipelines. Thus, ML pipelines are less formally managed [@lewis2021characterizing, @10.5555/2969442.2969519].
+
+2. Complexity of the ML stack. ML libraries usually have a large number of APIs and complex configuration knobs. Thus, it is hard for developers to correctly understand API usage and to formally verify the correctness of their pipelines [@humbatova2019taxonomy]. Dynamic types and the implicit broadcasting and type conversion rules also makes it harder to detect issues at compile time.
+
+3. Data-dependent nature of ML pipelines. Thus, it is harder to apply traditional software engineering techniques (e.g., unit testing) to ML pipelines. For example, a dataset-model mismatch can lead to silent accuracy decrease ([PyTorch#FORUM84911](https://github.com/OrderLab/machine-learning-issues/blob/main/PyTorch-FORUM84911/README.md#pytorch-forum84911)), Additionally, certain correctness issues might only be triggered by certain data [@li2023reliability, @humbatova2019taxonomy].  
+
+4. No explicit manifestation of the issue (e.g., no error message or discrepancy needs time to accumulate).
 
 <!-- What's missing in existing work, from a high-level perspective? -->
-While there are existing work that can help developers detect issues in ML pipelines, they fall short in the following ways:
-1. Existing work focuses on ensuring quality of ML models (e.g., hyperparameter tuning, model debugging, deepXplore[4], etc.) and DL frameworks (e.g., [3]) rather than the quality of ML pipelines
-2. Existing work focusing on ML pipelines focuses on a very specific type of issues (e.g., tensor shape mismatch[5]) or are limited cause they need prior runs of the same pipeline to pinpoint the issue (e.g., ).
-3. Existing work struggle to scale beyond simple ML pipelines (due to the enormous amount of Python syntax and API to support and the inherent limitation of static analysis).
+Existing works fall short in the following ways:
 
+1. Existing work tend to focuse on ensuring quality of ML models (DeepXplore [@Pei_2017]), DL frameworks (CRADLE [@8812095] and DeepREL [@deng2022fuzzing]), and compilers (NNSmith [Liu_2023]) rather than the quality of ML pipelines where bugs can reside in user-level code.
+2. Existing work focusing on ML pipelines focuses on a very specific type of issues (e.g. PyTea [@jhoo2021static], RANUM [@li2023reliability]) or are limited because they need prior runs of the same pipeline to pinpoint the issue (e.g. MLDebugger [@Louren_o_2019]).
+3. Existing work struggle to scale beyond simple ML pipelines due to the enormous amount of Python syntax and API to support and the inherent limitation of static analysis [@jhoo2021static].
+<!-- “Real-world machine learning applications heavily utilize third-party libraries, external datasets, and configuration parameters, and handle their controls with subtle branch conditions and loops, but the existing tools still lack in supporting some of these elements and thus they fail to analyze even a simple ML application” ([Jhoo et al., 2021, p. 3](zotero://select/library/items/3BQZ8HNH)) ([pdf](zotero://open-pdf/library/items/TPTNR77J?page=3&annotation=UMVSK2LS)) -->
 
 <!-- What's our approach? i.e. our hypothesis -->
 We want to create a general-purpose tool that can detect a wide range of silent/latent correctness issues in ML pipelines. Our high-level approach is to leverage dynamic analysis to infer the likely invariants of ML pipelines and then use those invariants to detect correctness issues.
@@ -59,7 +76,7 @@ We want to create a general-purpose tool that can detect a wide range of silent/
 A few directions we are considering:
 
 1. **Repository Mining + Static Analysis**:
-Infer library API specifications (pre-conditions and post conditions) from examples (e.g [PyTorch/examples](https://github.com/pytorch/examples)\[2\]). Then, use the inferred specifications to statically verify the user code connecting two API calls in the new ML pipeline.
+Infer library API specifications (pre-conditions and post conditions) from examples [@pytorch-examples]. Then, use the inferred specifications to statically verify the user code connecting two API calls in the new ML pipeline.
     - Pro: The inferred specifications are likely to be correct and comprehensive as they are mined from a huge number well-maintained examples.
     - Con: The inferred invariants might be best for detecting issues that raises exceptions. It might not be as good for detecting issues that are completely silent as these are usually caused by the data or inappropriately configuration parameters.
 
@@ -153,10 +170,3 @@ Since this project aims to leverage dynamic invariant inference to detect silent
     - Whether the inferred invariants are accurate? If not, the tool might not be able to detect the issues.
 
 ## References
-
-1. [Unicron: Economizing Self-Healing LLM Training at Scale](https://arxiv.org/abs/2401.00134)
-2. [PyTorch/examples](https://www.github.com/pytorch/examples)
-3. [Fuzzing Deep-Learning Libraries via Automated Relational API Inference](https://cs.stanford.edu/~anjiang/papers/FSE22DeepREL.pdf)
-4. [DeepXplore: Automated Whitebox Testing of Deep Learning Systems](https://arxiv.org/abs/1705.06640)
-5. [A static analyzer for detecting tensor shape errors in deep neural network training code](https://arxiv.org/abs/2112.09037)
-6. [Debugging Machine Learning Pipelines](https://arxiv.org/abs/2112.09037)
