@@ -32,9 +32,7 @@ torch.backends.cudnn.benchmark = False
 
 ### TODO: Write data loaders for training, validation, and test sets
 ## Specify appropriate transforms, and batch_sizes
-IMAGE_RESOL = 224
-
-data_transform = {'train':transforms.Compose([transforms.Resize((IMAGE_RESOL, IMAGE_RESOL)),
+data_transform = {'train':transforms.Compose([transforms.Resize((224,224)),
                                 transforms.RandomHorizontalFlip(p=0.5),
                                 transforms.RandomVerticalFlip(p=0.5),
                                 transforms.RandomRotation(30),
@@ -42,7 +40,7 @@ data_transform = {'train':transforms.Compose([transforms.Resize((IMAGE_RESOL, IM
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.2829, 0.2034, 0.1512],[0.2577, 0.1834, 0.1411])
                                ]),
-                  'valid':transforms.Compose([transforms.Resize((IMAGE_RESOL, IMAGE_RESOL)),
+                  'valid':transforms.Compose([transforms.Resize((224,224)),
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.2829,0.2034,0.1512],[0.2577,0.1834,0.1411])
                                 ]),
@@ -80,7 +78,10 @@ n_inputs = model_transfer._fc.in_features
 
 ## Yuxuan Testing: Using CIFAR100, thus 100 classes
 num_classes = 100
-model_transfer._fc = nn.Linear(n_inputs, num_classes)
+model_transfer._fc = nn.Sequential(
+    nn.Linear(n_inputs, num_classes),
+    nn.ReLU()
+)
 # %%
 ## Parallel GPU : https://pytorch.org/tutorials/beginner/blitz/data_parallel_tutorial.html
 device =  torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -93,19 +94,40 @@ criterion_transfer = nn.CrossEntropyLoss() # moved out from the above if stateme
 model_transfer.to(device)   
 
 
+# %%
+for name,param in model_transfer.module.named_parameters():
+    total_nbn_layers = len([name for name, _ in model_transfer.named_parameters() if "bn" not in name])
+    
+    tunable_nbn_layers = total_nbn_layers // 4
+    # tunable_nbn_layers = 5
+    tunable_nbn_ind = total_nbn_layers - tunable_nbn_layers
+
+    count = 0
+    for name, param in model_transfer.named_parameters():
+        if "bn" in name:
+            param.requires_grad = False
+        else:
+            if count > tunable_nbn_ind:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+            count += 1
+            
+
+for param in model_transfer.module._fc.parameters():
+    param.requires_grad = False
+    
+print(model_transfer.module._fc[0].in_features)
 
 
 # %%
-for name,param in model_transfer.module.named_parameters():
-    if("bn" not in name):
-        param.requires_grad = True
+for name, param in model_transfer.named_parameters():
+    print(f'{name}: {param.requires_grad}')
 
-for param in model_transfer.module._fc.parameters():
-    param.requires_grad = True
-    
-print(model_transfer.module._fc.in_features)
-
-
+# %%
+input_size = (3, 224, 224)
+from torchsummary import summary
+summary(model_transfer, input_size)
 
 # %%
 use_cuda = torch.cuda.is_available()
@@ -205,9 +227,10 @@ def train(n_epochs, loaders, model, optimizer, criterion, use_cuda, save_path):
 
 
 num_epochs = 40
-lr = 0.005
-optimizer_transfer = optim.Adam(model_transfer.module._fc.parameters(),lr=lr)
-model_transfer, res = train(10, data_transfer, model_transfer, optimizer_transfer, criterion_transfer, use_cuda, f'results/{num_epochs}_{lr}')
+lr = 0.01
+optimizer_transfer = optim.Adam(filter(lambda p : p.requires_grad, model_transfer.parameters()), lr=lr)
+# optimizer_transfer = optim.Adam(model_transfer.module._fc.parameters(),lr=lr)
+model_transfer, res = train(num_epochs, data_transfer, model_transfer, optimizer_transfer, criterion_transfer, use_cuda, f'results/{num_epochs}_{lr}')
 
 # save model
 torch.save(model_transfer.state_dict(), f'case_{num_epochs}_{lr}_model.pt')
