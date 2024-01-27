@@ -98,7 +98,7 @@ model_transfer.to(device)
 for name,param in model_transfer.module.named_parameters():
     total_nbn_layers = len([name for name, _ in model_transfer.named_parameters() if "bn" not in name])
     
-    tunable_nbn_layers = total_nbn_layers // 4
+    tunable_nbn_layers = total_nbn_layers // 6
     tunable_nbn_ind = total_nbn_layers - tunable_nbn_layers
 
     count = 0
