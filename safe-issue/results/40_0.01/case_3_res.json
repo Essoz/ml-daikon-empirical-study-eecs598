@@ -1,0 +1,1 @@
+[{"Epoch": 1, "loss": 3.1799750099401654, "valid_loss": 2.46242597599331, "Valid_Accuracy": 39.22}, {"Epoch": 2, "loss": 2.5646849486529057, "valid_loss": 2.1403564437371174, "Valid_Accuracy": 45.9}, {"Epoch": 3, "loss": 2.3689445347127407, "valid_loss": 2.044415034069795, "Valid_Accuracy": 48.39}]
