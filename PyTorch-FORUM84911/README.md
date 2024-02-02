@@ -170,19 +170,19 @@ We can detect this type of issues at runtime by monitoring the memory usage and 
 
 * 1/4 active: Converges @around 30 epoch, Acc: 0.62
 
-![lss-1-4](/lss-1-4.png)
-![acc-1-4](/acc-1-4.png)
+![lss-1-4](./lss-1-4.png)
+![acc-1-4](./acc-1-4.png)
 
 
 * 1/6 active: Still not converge @ 40 epoch, Acc>0.63
 
-![lss-1-6](/lss-1-6.png)
-![acc-1-6](/acc-1-6.png)
+![lss-1-6](./lss-1-6.png)
+![acc-1-6](./acc-1-6.png)
 
 * 2 layer active: Converges @around 20 epoch, Acc: 0.41
 
-![lss-2-left](/lss-2-left.png)
-![acc-2-left](/acc-2-left.png)
+![lss-2-left](./lss-2-left.png)
+![acc-2-left](./acc-2-left.png)
 
 * All forzen: Converges @ first epoch (not trained), Acc: 0.1
 
