@@ -27,4 +27,4 @@ TBD
 ## Potential Ways to Detect the Bug Automatically
 * create unit tests/logging/monitoring that specifically target the behavior of `torch.quantile` when running on MPS devices
 * Invariant check:
-*   a
+  * 
