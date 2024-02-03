@@ -27,7 +27,7 @@ TBD
 ## Potential Ways to Detect the Bug Automatically
 * create unit tests/logging/monitoring that specifically target the behavior of `torch.quantile` when running on MPS devices
 * Invariant check:
-  * [`test_quantile_inv.py`](/Invariant_check/test_quantile_inv.py):
+  * [`test_quantile_inv.py`](./Invariant_check/test_quantile_inv.py):
   Accuracy check: the invariant check compares the MPS result with the reference result using torch.allclose to check if they are close within a specified tolerance.
-  * [`test_matmul_inv.py`](/Invariant_check/test_matmul_inv.py):
+  * [`test_matmul_inv.py`](./Invariant_check/test_matmul_inv.py):
   Consistency check: the invariant check considers the bug if the number of ones in the result tensor varies across runs.  
