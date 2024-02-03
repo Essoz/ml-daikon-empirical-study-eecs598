@@ -1,35 +1,30 @@
-# PYTORCH-77764
+# PYTORCH-77764 MPS Issues
 
-## quantile_bug
+https://github.com/pytorch/pytorch/issues/101878
 
-### CPU
+https://github.com/pytorch/pytorch/issues/111634
 
-``` 
-torch.quantile(A, .5, 0, interpolation = "nearest")
-tensor([ 0.0279,  0.0380,  0.0013,  0.0168, -0.0601, -0.0600,  0.0022, -0.0169,
-        -0.0453, -0.0176])
-```
+## Environment Setup
 
-### CUDA
+## Run
+Check in the issue folder
+`pwd`
+`*/PyTorch-77764/`
+Run `pytest` **on a Mac OS Device that supports MPS**
 
-```
-torch.quantile(A.to(device), .5, 0, interpolation = "nearest")
-tensor([ 0.0279,  0.0380,  0.0013,  0.0168, -0.0601, -0.0600,  0.0022, -0.0169,
-        -0.0453, -0.0176], device='cuda:0')
-```
+## What is the bug
+* incorrect return value for `torch.quantile` on mps device
+* incorrect return gradients by the backward method on mps device
+* incorrect return for matmul operation on mps device (should be a all-zero matrix but element '1' occurs)
 
-## grad_bug
+## Possible Cause
+* `t.transpose()` and `t.unsqueeze()` functions inside `torch.quantile` provide a strided view that the sort() MPS implementation doesn't handle well
+* MPS framework related
 
-### CPU
+## How to Fix
+TBD
 
-```
-torch.where(A.grad != 0)
-(tensor([ 11,  70, 144, 208, 262, 698, 784, 907, 949, 975]), tensor([9, 8, 3, 7, 4, 5, 2, 0, 1, 6]))
-```
-
-### CUDA
-
-```
-torch.where(A.grad != 0)
-(tensor([ 11,  70, 144, 208, 262, 698, 784, 907, 949, 975]), tensor([9, 8, 3, 7, 4, 5, 2, 0, 1, 6]))
-```
+## Potential Ways to Detect the Bug Automatically
+* create unit tests/logging/monitoring that specifically target the behavior of `torch.quantile` when running on MPS devices
+* Invariant check:
+*   a
