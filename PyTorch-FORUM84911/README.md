@@ -155,36 +155,42 @@ We can also monitor the model's gradients. If the gradients are all zeros, it is
 
 We can detect this type of issues at runtime by monitoring the memory usage and GPU utilization. In this particular issue, the 32x32 images are rescaled to 1024x1024 images. This leads to excessive memory usage and low GPU SM utilization. If we monitor the memory usage and GPU utilization, we can detect this issue.
 
-## Update 1/27 - Ziming
+## Update 1/27, 2024 - Ziming
 
+### Issue: Number of Trainable Layers needs to be adjusted properly
 
-### Issue: Depth of the model
+When finetuning a pretrained model, the number of trainable layers needs to be adjusted properly.
+Usually, the last few layers are trainable, and the rest of the layers are frozen.
 
-* All frozen -> weak nolinearity -> too shallow -> underfitting
-* 0 forzen -> Imagenet 1000 classes vs Cifar 100 classes -> too deep -> overfitting
-* Here only freeze 1/4 tunable NN layers (excluding batchnorm layers)
+In this issue's case, when the last 1/4 layers are trainable, the model achieves much better performance than when all layers are trainable or no layers are trainable.
+
+- No/little trainable Layers -> Too few weights to learn, leading to underfitting
+- All Layers Being Trainable -> CIFAR100 dataset is a bit small and might lead to the model overfitting
+- Here only freeze 1/4 tunable NN layers (excluding batchnorm layers)
 
 ### Experiments: Adjusting the number of active layers
 
-* All active: Converges @around 10 epoch, Acc:0.4
-
-* 1/4 active: Converges @around 30 epoch, Acc: 0.62
+- All active: Converges @around 10 epoch, Acc:0.4
 
 ![lss-1-4](./lss-1-4.png)
 ![acc-1-4](./acc-1-4.png)
 
+- 1/4 active: Converges @around 30 epoch, Acc: 0.62
 
-* 1/6 active: Still not converge @ 40 epoch, Acc>0.63
+![lss-1-4](./lss-1-4.png)
+![acc-1-4](./acc-1-4.png)
+
+- 1/6 active: Still not converge @ 40 epoch, Acc>0.63
 
 ![lss-1-6](./lss-1-6.png)
 ![acc-1-6](./acc-1-6.png)
 
-* 2 layer active: Converges @around 20 epoch, Acc: 0.41
+- 2 layer active: Converges @around 20 epoch, Acc: 0.41
 
 ![lss-2-left](./lss-2-left.png)
 ![acc-2-left](./acc-2-left.png)
 
-* All forzen: Converges @ first epoch (not trained), Acc: 0.1
+- All forzen: Converges @ first epoch (not trained), Acc: 0.1
 
 ### Revelation (from GPT)
 
