@@ -172,6 +172,9 @@ In this issue's case, when the last 1/4 layers are trainable, the model achieves
 
 - All active: Converges @around 10 epoch, Acc:0.4
 
+![lss-1-4](./lss-1-4.png)
+![acc-1-4](./acc-1-4.png)
+
 - 1/4 active: Converges @around 30 epoch, Acc: 0.62
 
 ![lss-1-4](./lss-1-4.png)
