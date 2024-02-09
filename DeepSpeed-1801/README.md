@@ -107,12 +107,74 @@ The bug is in the `deepspeed/runtime/bf16_optimizer.py` file. The `get_grads_for
 
 ## Root Causes
 
-TODO
+DeepSpeed's `BF16_Optimizer` has a function `get_grads_for_norm` that is used to get the gradients for the norm.
 
-## How to fix
+Below is the incorrect implementation of the function:
 
-The fix was simple, but I haven't quite understood the debugging process yet and the exact root cause of the bug. The fix was to move the `if not (tensor_mp_rank == 0 or is_model_parallel_parameter(lp))` line in by one indentation level.
+```python
+@torch.no_grad()
+def get_grads_for_norm(self, for_clipping=False):
+    grads = []
+    tensor_mp_rank = bwc_tensor_model_parallel_rank(mpu=self.mpu)
+    for i, group in enumerate(self.bf16_groups):
+        for j, lp in enumerate(group):
+            if not for_clipping:
+                if hasattr(lp, PIPE_REPLICATED) and lp.ds_pipe_replicated:
+                    continue
+
+            if not (tensor_mp_rank == 0 or is_model_parallel_parameter(lp)): # this line is incorrectly placed, should be inside the `if not for_clipping` condition
+                continue
+
+            if not self.fp32_groups_has_gradients[i][j]:
+                continue
+
+            grads.append(self.fp32_groups_gradients[i][j])
+
+   return grads
+```
+
+High-level speaking, the function should have the line `if not (tensor_mp_rank == 0 or is_model_parallel_parameter(lp))` inside the `if not for_clipping` condition.
+
+To understand this better, let's talk about the desired behavior of the function and the meaning of the if conditions `not (tensor_mp_rank == 0 or is_model_parallel_parameter(lp))` and `hasattr(lp, PIPE_REPLICATED) and lp.ds_pipe_replicated`.
+
+### Desired Behavior
+
+This function, as the name suggests, is used to get the gradients for the norm calculation. Norm by definition is a scalar value, and it is calculated using the gradients of the model parameters. Due to the complicated parallelism settings, some parameters might be partitioned, some might be replicated, and some might be shared across different model replicas. Therefore, it is very important to recognize whether a parameter is replicated or partitioned, to avoid double counting the gradients.
+
+The conditions `hasattr(lp, PIPE_REPLICATED) and lp.ds_pipe_replicated`, and `not (tensor_mp_rank == 0 or is_model_parallel_parameter(lp))` are used for this purpose of avoid multi-counting. Specifically for the second condition, if a parameter is not partitioned (i.e. it is not a model parallel parameter), only one replica (heuristically, the replica on the node with rank == 0) should be used to calculate the gradients.
+
+### The dual-purpose of the function
+
+Apart from collecting unique gradients for the norm calculation, this function also has a untold purpose of collecting gradients that's going to be clipped. This purpose is served when people killing people 
+
+The `for_clipping` parameter is used to distinguish between the two purposes. If `for_clipping` is `True`, the function would collect all the gradients, regardless of the partitioning or replication of the parameters. If `for_clipping` is `False`, the function would only collect the unique gradients (for norm calcuation).
+
+### The Bug
+
+The bug is that the condition `not (tensor_mp_rank == 0 or is_model_parallel_parameter(lp))` is not correctly placed. It should be inside the `if not for_clipping` condition. This is because the condition is used to collect unique gradients for the norm calculation, and it should not be used when collecting gradients for clipping.
+
+When the condition is placed outside the `if not for_clipping` condition, it is incorrectly used to collect gradients to be clipped would be inconsistent across different workers. This is because the condition would only collect the gradients from the worker with rank == 0, and would ignore the gradients from other workers. Thus, other workers would not have their gradients clipped, leading to inconsistent model weights.
+
+The range of this bug is limited to layernorm weights in transformer layers, as layernorm weights are duplicated across different workers while other weights are usually partitioned. Primarily the reason why layernorm weights are duplicated on each worker is to avoid communication overhead (please refer to section 3 of the paper *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*).
+
 
 ## Potential Ways to Detect the Bug Automatically
 
-TODO.
+Detection of this bug can go two ways, 1 from the underlying root cause and needs the tracer to have more semantic understanding of the code, and 2 from the high-level behavior of the model, the detection of the bug can be simple and straightforward, but since the detection is at a higher level, it might not be able to pinpoint the exact root cause.
+
+1. Lower-level root-cause detection: The `get_grads_for_norm` function is problematic. It contains a bad design pattern where the function is used for an unspoken purpose of collecting gradients to be clipped. The function should be split into two functions, one for collecting unique gradients for the norm calculation, and one for collecting gradients to be clipped. **On the one hand**, if we infer from other optimizers that functions like `get_grads_for_norm` are used to collect unique gradients for the norm calculation, we can observe if the function is multi-counting the gradients. If the function is multi-counting the gradients, we can infer that the function is not implemented correctly or contains a bad design pattern. **On the other hand**, if we infer from other optimizers that functions like `get_grads_for_norm` are used to collect gradients to be clipped, we can observe if the function is not collecting the gradients from all the layers on the worker. If the function is not collecting the gradients from all the workers, we can infer that the function is used for an unspoken purpose of collecting unique gradients for the norm calculation.
+
+2. High-level behavior detection: The bug causes the model norm weights to be out-of-sync. We can detect the bug by checking if the model norm weights are in sync across all the model replicas after sync. When we check the checkpoint files dumped from different model replicas, the model norm weights should be the same. However, the bug causes the model norm weights to be out-of-sync. We can write a test to check if the model norm weights are in sync across all the model replicas after sync. If the model norm weights are not in sync across all the model replicas after sync, we can infer that the bug is present.
+
+### Challenges #1
+
+The first approach is challenging due to the following reasons:
+
+1. Different optimizers, though highly similar, can have different interfaces (in terms of method names or abstraction levels). It might be hard to match an existing invariant to the `get_grads_for_norm` function in BF16_Optimizer.
+2. The `get_grads_for_norm` function's issue lied in an unspoken purpose that existing functions in other optimizers might not have. The invariant check might not be direct enough to pinpoint the exact root cause of the bug. (It might only be able to infer that the function is multi-counting the gradients, which can be annoying because developers want to do this on purpose although they did that incorrectly.)
+
+### Challenges #2
+
+The second approach is challenging due to the following reasons:
+
+1. Due to varied paralleism settings, it is not straightforward to check if model weights are in sync across all the model replicas after sync. It might require to understand what weights are shared, what weights are partitioned, and what weights are replicated across different model replicas. Only the duplicated weights are affected by the bug.
