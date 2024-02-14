@@ -74,7 +74,7 @@ The direct cause is the dead loop in the pytorch [dataloader.py](https://github.
 
 * Root Cause:
 
-Probably related to the connection issue of visdom (mainly issues from visdom).
+Probably related to the connection issue caused by `visdom`
 
 ## How to Fix
 
@@ -83,7 +83,17 @@ Verified Solution: set `display_id=0` option which disabled `visdom`
 ## Potential Ways to Detect the Bug Automatically
 
 1. Runtime resource usage monitor: (universal to all deadlock/infinite loop related issues)
+
+
 2. Data-driven diagnostics (loss, model weight, etc): not applicable in these scenario since loss and model weight are normal.
 
-In `visualization.ipynb`
+- In `visualization.ipynb`
+
+![image](https://github.com/OrderLab/machine-learning-issues/assets/97345341/a22beb0c-708a-44a7-b7a4-2f54ac033b72)
+
+
+![image](https://github.com/OrderLab/machine-learning-issues/assets/97345341/228062a8-5c3a-44ee-80c1-582bdd9d2bdd)
+
+
+
 
