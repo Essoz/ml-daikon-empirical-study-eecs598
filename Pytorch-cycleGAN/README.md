@@ -92,7 +92,8 @@ Verified Solution: set `display_id=0` option which disabled `visdom`
 ![image](https://github.com/OrderLab/machine-learning-issues/assets/97345341/a22beb0c-708a-44a7-b7a4-2f54ac033b72)
 
 
-![image](https://github.com/OrderLab/machine-learning-issues/assets/97345341/228062a8-5c3a-44ee-80c1-582bdd9d2bdd)
+![image](https://github.com/OrderLab/machine-learning-issues/assets/97345341/55b66974-bb2c-4809-8741-00ea6a5fe49b)
+
 
 
 
