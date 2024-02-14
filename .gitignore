@@ -1,3 +1,5 @@
 .vscode
 /PyTorch-FORUM84911/env/
 /PyTorch-FORUM84911/data
+**/__pycache__/*
+/pytorch-CycleGAN-and-pix2pix
