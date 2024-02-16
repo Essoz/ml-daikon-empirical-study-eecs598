@@ -157,6 +157,37 @@ When the condition is placed outside the `if not for_clipping` condition, it is 
 
 The range of this bug is limited to layernorm weights in transformer layers, as layernorm weights are duplicated across different workers while other weights are usually partitioned. Primarily the reason why layernorm weights are duplicated on each worker is to avoid communication overhead (please refer to section 3 of the paper *Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism*).
 
+## Bug Detection
+
+This bug will lead to inconsistent model weights across tensor parallel ranks, which, however, does not have any manifestation during the training and validation process. No loss spikes and accuracy drops will happen.
+
+I ran the [codeparrot_small model training](https://huggingface.co/blog/megatron-training) process with the bug present (*tensorboard*) and absent (*tensorboard-syncing*) sync for 2000 iterations (~12 hours on ring18 with 2DP + 4TP). The gradient norm always aligns.
+![grad_norm_comparison](./figures/grad_norm_comparison.png)
+
+Loss and perplexity showed mild differences at the very beginning. However as can be seen from the figure below, they quickly converge to the same value near 2000 iterations.
+![loss_and_ppl_comparison](./figures/loss_and_ppl_comparison.png)
+
+This leads to the conclusion that the bug is not detectable during the training and validation process, unless developers are specifically looking for weight consistency.
+
+As per Stas Bekman (leader of the bloom project), the bug was detected completely by accident, and if it wasn't detected, it would have led to severe consequences.
+![email_with_stas](./figures/email_with_stas.png)
+
+## Bug Impact
+
+As mentioned in the previous section, the bug does not have any manifestation during the training and validation process. The problem occurs when developers want to merge the checkpoint files into a single model replica. Since there are multiple sets of layerNorm weights, the developers need to either average or choose one of them, which potentially leads to worse model accuracy.
+
+I measured the impact on model accuracy by averaging the layerNorm weights at both 2000 and 4000 iterations:
+
+| Iteration | Type | Loss | PPL | Loss (Avg) | PPL (Avg) | Loss Diff | PPL Diff | Loss Diff (%) | PPL Diff (%) |
+|-----------|------|------|-----|------------|-----------|-----------|----------|---------------|--------------|
+| 2000      | Valid | 1.249654E+00 | 3.489136E+00 | 1.263902E+00 | 3.539203E+00 | + 0.014248 | + 0.050067 | + 1.14% | + 1.43% |
+| 2000      | Test | 1.181316E+00 | 3.258658E+00 | 1.213769E+00 | 3.366148E+00 | + 0.032453 | + 0.107490 | + 2.74% | + 3.30% |
+| 4000      | Valid | 1.082995E+00 | 2.953512E+00 | 1.115996E+00 | 3.052606E+00 | + 0.033001 | + 0.099094 | + 3.05% | + 3.36% |
+| 4000      | Test | 1.002177E+00 | 2.724205E+00 | 1.049001E+00 | 2.854798E+00 | + 0.046824 | + 0.130593 | + 4.67% | + 4.79% |
+
+The loss and perplexity are higher when the layerNorm weights are averaged, indicating the model accuracy is worse.
+
+Due to resource limit, I was only able to run the training process for 4000 iterations. As can be seen from the table, the loss and perplexity differences are roughly increasing as the training process goes on. This indicates that the impact of the bug is increasing as the training process goes on. The total training process will take 150,000 iterations, and I think the impact of the bug will be more severe if the training process goes on. 
 
 ## Potential Ways to Detect the Bug Automatically
 
