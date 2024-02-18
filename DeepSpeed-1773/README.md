@@ -86,8 +86,22 @@ Current loss scale already at minimum - cannot decrease scale anymore. Exiting r
 
 ## Root Causes
 
+- FP16:
+
+  - Sign bit: 1 bit
+  - Exponent: 5 bits
+  - Mantissa: 10 bits
+
+- BF16:
+
+  - Sign bit: 1 bit
+  - Exponent: 8 bits
+  - Mantissa: 7 bits
+
+The main reason FP16 is more prone to gradient overflow compared to BF16 is due to the difference in exponent size. In FP16, the exponent is only 5 bits, which means it has a smaller range of representable exponents compared to BF16, which has an 8-bit exponent.
+
 ## Potential Ways to Detect the Bugs Automatically
 
-
+TBD
 
 
