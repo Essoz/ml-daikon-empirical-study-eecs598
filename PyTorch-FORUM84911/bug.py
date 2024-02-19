@@ -9,10 +9,18 @@ from tqdm import tqdm
 
 import torch.optim as optim
 
+# shape = (223, 223)
+shape = (1024, 1024)
+log_dir = f'runs/{shape[0]}'
+os.makedirs('runs', exist_ok=True)
+os.makedirs(log_dir, exist_ok=True)
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter(log_dir)
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2" 
 os.environ["CUDA_VISIBLE_DEVICES"]="0" 
 #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
 # Deterministic Behaviour
 seed = 786
 os.environ['PYTHONHASHSEED'] = str(seed)
@@ -30,9 +38,8 @@ torch.backends.cudnn.benchmark = False
 #torch.cuda.empty_cache()
 
 
-### TODO: Write data loaders for training, validation, and test sets
 ## Specify appropriate transforms, and batch_sizes
-data_transform = {'train':transforms.Compose([transforms.Resize((224,224)),
+data_transform = {'train':transforms.Compose([transforms.Resize(shape),
                                 transforms.RandomHorizontalFlip(p=0.5),
                                 transforms.RandomVerticalFlip(p=0.5),
                                 transforms.RandomRotation(30),
@@ -40,7 +47,7 @@ data_transform = {'train':transforms.Compose([transforms.Resize((224,224)),
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.2829, 0.2034, 0.1512],[0.2577, 0.1834, 0.1411])
                                ]),
-                  'valid':transforms.Compose([transforms.Resize((224,224)),
+                  'valid':transforms.Compose([transforms.Resize(shape),
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.2829,0.2034,0.1512],[0.2577,0.1834,0.1411])
                                 ]),
@@ -56,7 +63,7 @@ valid_dir = os.path.join(dir_file,'dev')
 train_set = datasets.CIFAR100(root='./data', train=True, download=True, transform=data_transform['train'])
 valid_set = datasets.CIFAR100(root='./data', train=False, download=True, transform=data_transform['valid'])
 
-batch_size = 64
+batch_size = 4
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, pin_memory=False, num_workers=1, shuffle=False)
 valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=1, pin_memory=False, num_workers=1, shuffle=False)
 
@@ -68,23 +75,15 @@ data_transfer = {'train':train_loader, 'valid':valid_loader}
 import torchvision.models as models
 import torch.nn as nn
 
-## TODO: Specify model architecture 
-# define VGG16 model
-#model_transfer = models.resnet50(pretrained=True)
-
 from efficientnet_pytorch import EfficientNet
 model_transfer = EfficientNet.from_pretrained('efficientnet-b0')
 n_inputs = model_transfer._fc.in_features
 
-## Yuxuan Testing: Using CIFAR100, thus 100 classes
 num_classes = 100
-model_transfer._fc = nn.Sequential(
-    nn.Linear(n_inputs, num_classes),
-    nn.ReLU()
-)
-# %%
-## Parallel GPU : https://pytorch.org/tutorials/beginner/blitz/data_parallel_tutorial.html
+model_transfer._fc = nn.Linear(n_inputs, num_classes)
+
 device =  torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+use_cuda = torch.cuda.is_available()
 
 if torch.cuda.device_count() > 1:
   print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -93,51 +92,16 @@ model_transfer = nn.DataParallel(model_transfer) # moved out from the above if s
 criterion_transfer = nn.CrossEntropyLoss() # moved out from the above if statement
 model_transfer.to(device)   
 
-
-# %%
 for name,param in model_transfer.module.named_parameters():
-    total_nbn_layers = len([name for name, _ in model_transfer.named_parameters() if "bn" not in name])
-    
-    tunable_nbn_layers = total_nbn_layers // 4
-    # tunable_nbn_layers = 5
-    tunable_nbn_ind = total_nbn_layers - tunable_nbn_layers
-
-    count = 0
-    for name, param in model_transfer.named_parameters():
-        if "bn" in name:
-            param.requires_grad = False
-        else:
-            if count > tunable_nbn_ind:
-                param.requires_grad = True
-            else:
-                param.requires_grad = False
-            count += 1
-            
-
+    if("bn" not in name):
+        param.requires_grad = False
+        
 for param in model_transfer.module._fc.parameters():
-    param.requires_grad = False
+    param.requires_grad = True
     
-print(model_transfer.module._fc[0].in_features)
+print(model_transfer.module._fc.in_features)
 
-
-# %%
-for name, param in model_transfer.named_parameters():
-    print(f'{name}: {param.requires_grad}')
-
-# %%
-input_size = (3, 224, 224)
-from torchsummary import summary
-summary(model_transfer, input_size)
-
-# %%
-use_cuda = torch.cuda.is_available()
-
-
-# %%
-## For adding multi-class accuracy
 nb_classes = num_classes
-
-
 
 # %%
 # the following import is required for training to be robust to truncated images
@@ -148,7 +112,6 @@ def train(n_epochs, loaders, model, optimizer, criterion, use_cuda, save_path):
     """returns trained model"""
     # initialize tracker for minimum validation loss
     os.makedirs(save_path, exist_ok=True)
-
 
     valid_loss_min = np.Inf 
     confusion_matrix = torch.zeros(nb_classes, nb_classes)
@@ -169,8 +132,27 @@ def train(n_epochs, loaders, model, optimizer, criterion, use_cuda, save_path):
             optimizer.zero_grad()
             output = model(data)
             loss = criterion(output,target)
+
+            for name, param in model.named_parameters():
+                # assert: no param should have grad
+                if not (param.grad is None or param.grad.abs().sum() == 0):
+                    print("name: ", name, " has non-zero grad norm", param.grad.norm(2).item())
+                    raise ValueError("param.grad is not None or param.grad.abs().sum() != 0")
+
             loss.backward()
+
+            writer.add_scalar('Loss/train (batch)', loss, batch_idx)
+            # calculate gradient norm
+            grad_norm = 0
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    grad_norm += param.grad.norm(2).item()
+                    print("norm of ", name, " is ", param.grad.norm(2).item())
+            writer.add_scalar('Grad Norm (L2) /train', grad_norm**0.5, epoch)
+            print(f'Epoch: {epoch}, Batch: {batch_idx}, Grad Norm: {grad_norm**0.5}')
+            
             optimizer.step()
+
             train_loss += ((1 / (batch_idx + 1)) * (float(loss) - train_loss))
 
         ######################    
@@ -190,7 +172,8 @@ def train(n_epochs, loaders, model, optimizer, criterion, use_cuda, save_path):
             correct += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
             total += data.size(0)
 
-            
+        writer.add_scalar('Loss/valid', valid_loss, epoch)
+        writer.add_scalar('Accuracy/valid', 100. * (correct / total), epoch)
             
         # print training/validation statistics 
         print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
@@ -225,11 +208,10 @@ def train(n_epochs, loaders, model, optimizer, criterion, use_cuda, save_path):
     return model, res
 
 
-
-num_epochs = 40
+num_epochs = 10
 lr = 0.01
-optimizer_transfer = optim.Adam(filter(lambda p : p.requires_grad, model_transfer.parameters()), lr=lr)
-# optimizer_transfer = optim.Adam(model_transfer.module._fc.parameters(),lr=lr)
+optimizer_transfer = optim.Adam(model_transfer._fc.parameters(), lr=lr)
+# optimizer_transfer = optim.Adam(filter(lambda p : p.requires_grad, model_transfer.parameters()),lr=lr)
 model_transfer, res = train(num_epochs, data_transfer, model_transfer, optimizer_transfer, criterion_transfer, use_cuda, f'results/{num_epochs}_{lr}')
 
 # save model
@@ -239,6 +221,3 @@ torch.save(model_transfer.state_dict(), f'case_{num_epochs}_{lr}_model.pt')
 import json
 with open('case_3_res.json', 'w') as fp:
     json.dump(res, fp)
-
-
-
