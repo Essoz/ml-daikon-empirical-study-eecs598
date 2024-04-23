@@ -72,6 +72,8 @@ The bug was originally reported in the Bloom-176B model training process, where 
         return grads
     ```
 
+7. Depending your numpy and pytorch version, you may need to manually change all `torch._six` to `torch` and all `np.float` to `float` in both Megatron-DeepSpeed and DeepSpeed repos.
+
 ## Run
 
 We run the developer's test to reproduce the bug.
@@ -92,9 +94,9 @@ We run the developer's test to reproduce the bug.
     The test should fail, and you should see an error message similar to the following:
 
     ```bash
-    FAILED tests/test_training.py::MegDSTestTraining::test_layer_norm_consistent_0_bf16 - AssertionError: Checking Transformer Layer norm weights in key input_layernorm.weight, checkpoint global_step10, files ['layer_03-model_00-model_states.pt', 'layer_03-model_01-model_states.pt']
+    FAILED tests/test_training.py::MegDSTestTraining::test_layer_norm_consistent_0_bf16 - AssertionError: Tensor-likes are not equal!
     ```
-
+    
 ## What to expect
 
 Model norm weights should be in sync across all the model replicas after sync. When we check the checkpoint files dumped from different model replicas, the model norm weights should be the same. However, the bug causes the model norm weights to be out-of-sync.
